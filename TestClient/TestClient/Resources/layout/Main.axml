@@ -14,10 +14,15 @@
         android:layout_height="wrap_content"
         android:id="@+id/InputName" />
     <Button
-        android:text="Submit"
+        android:text="Test Name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/SubmitNameButton" />
+        android:id="@+id/TestNameButton" />
+    <Button
+        android:text="Connect to Server"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/ConnectButton" />
     <Button
         android:text="Disconnect"
         android:layout_width="match_parent"
