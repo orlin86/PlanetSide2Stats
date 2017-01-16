@@ -34,6 +34,7 @@ namespace ServerConsoleApp
         {
             ws.OnOpen += (sender, e) =>
             {
+                Send("You are connected \r\n");
             };
             ws.OnMessage += (sender, e) =>
             {
@@ -70,12 +71,11 @@ namespace ServerConsoleApp
             ws.Send(sendString);
             // ↓ sets name to client to match his querry, SWICH WITH E.DATA
             _name = e.Data;
-            Sessions.Broadcast($"\r\n{_name}: Connected");
         }
 
         protected override void OnClose(CloseEventArgs e)
         {
-            Sessions.Broadcast(String.Format("{0} got logged off...", _name));
+
         }
 
 

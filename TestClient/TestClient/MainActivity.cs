@@ -45,8 +45,8 @@ namespace TestClient
 
             string champId = "";
             WebSocket ws = new WebSocket("ws://92.247.240.220:4649/SendKills");
-            ws.EmitOnPing = true;
-            ws.WaitTime = TimeSpan.FromSeconds(2);
+            ws.EmitOnPing = false;
+            
             ThreadPool.QueueUserWorkItem(o => ws.OnOpen += (sender, e) =>
             {
                 if (champId != "")
@@ -59,20 +59,16 @@ namespace TestClient
              {
                  RunOnUiThread(() => dataSmall.Text += e.Data + "\r\n");
              });
+
             ws.OnError += (sender, e) =>
             {
-                dataBig.Text = e.Exception.ToString();
+                //dataBig.Text = e.Exception.ToString();
             };
 
             ws.OnClose += (sender, e) =>
             {
                 dataBig.Text = "Connection Closed";
             };
-            ws.OnOpen += (sender, e) =>
-            {
-                RunOnUiThread(() => dataBig.Text = "Connected");
-            };
-
 
             //// Enter rest querry to PS2 API
             testNameButton.Click += async (object sender, EventArgs er) =>

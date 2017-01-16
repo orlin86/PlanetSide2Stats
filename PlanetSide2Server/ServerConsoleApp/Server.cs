@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using WebSocketSharp;
@@ -18,8 +19,8 @@ namespace ServerConsoleApp
             WebSocketServer wssv = new WebSocketServer(System.Net.IPAddress.Any, 4649);
 #if DEBUG
             wssv.Log.Level = LogLevel.Trace;
-            wssv.WaitTime = TimeSpan.FromSeconds(10);
 #endif
+            wssv.KeepClean = false;
             wssv.AddWebSocketService<SendKills>("/SendKills");
             wssv.Start();
             if (wssv.IsListening)
