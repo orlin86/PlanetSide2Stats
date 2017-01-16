@@ -34,11 +34,9 @@ namespace ServerConsoleApp
         {
             ws.OnOpen += (sender, e) =>
             {
-                ws.Send("Hi, there!");
             };
             ws.OnMessage += (sender, e) =>
             {
-                var name = Context.QueryString["name"];
                 nf.Notify(new NotificationMessage
                 {
                     Summary = "Planetside2 Api MSG",
@@ -46,9 +44,14 @@ namespace ServerConsoleApp
                     Icon = "notification-message-im"
                 });
                 // ↓ sends to client data, containing death, !! SWICH WITH E.DATA
-                if (_name.Contains("Death"))
+                if (e.Data.Contains(_name))
                 {
                     Send(e.Data);
+                    Console.WriteLine("//////");
+                    Console.WriteLine("//////");
+                    Console.WriteLine($"DATA SENT TO CLIENT {e.Data}");
+                    Console.WriteLine("//////");
+                    Console.WriteLine("//////");
                 }
             };
             _name = getName();
@@ -66,7 +69,8 @@ namespace ServerConsoleApp
             Console.WriteLine(sendString);
             ws.Send(sendString);
             // ↓ sets name to client to match his querry, SWICH WITH E.DATA
-            _name += "Death";
+            _name = e.Data;
+            Sessions.Broadcast($"\r\n{_name}: Connected");
         }
 
         protected override void OnClose(CloseEventArgs e)
@@ -78,7 +82,6 @@ namespace ServerConsoleApp
         public SendKills(string prefix)
         {
             _prefix = !prefix.IsNullOrEmpty() ? prefix : "anon#";
-
         }
 
         private string getName()

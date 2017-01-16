@@ -34,15 +34,27 @@ namespace TestClient
             EditText inputName = FindViewById<EditText>(Resource.Id.InputName);
             Button testNameButton = FindViewById<Button>(Resource.Id.TestNameButton);
             Button connectButton = FindViewById<Button>(Resource.Id.ConnectButton);
+            Button testIfOnline = FindViewById<Button>(Resource.Id.testIfOnlineButton);
             Button disconnecButton = FindViewById<Button>(Resource.Id.DisconnectButton);
             TextView dataBig = FindViewById<TextView>(Resource.Id.DataBig);
             TextView dataSmall = FindViewById<TextView>(Resource.Id.DataSmall);
 
-            WebSocket ws = new WebSocket("wss://push.planetside2.com/streaming?environment=ps2&service-id=s:3216732167");
 
+            //// Wbsocket Params
+            //WebSocket ws = new WebSocket("wss://push.planetside2.com/streaming?environment=ps2&service-id=s:3216732167");
 
-            ThreadPool.QueueUserWorkItem(o => ws.OnOpen += (sender, e) => ws.Send("Hi, there!"));
-
+            string champId = "";
+            WebSocket ws = new WebSocket("ws://92.247.240.220:4649/SendKills");
+            ws.EmitOnPing = true;
+            ws.WaitTime = TimeSpan.FromSeconds(2);
+            ThreadPool.QueueUserWorkItem(o => ws.OnOpen += (sender, e) =>
+            {
+                if (champId != "")
+                {
+                    RunOnUiThread(() => dataBig.Text += "  Data Sent  " + champId);
+                    ws.Send(champId);
+                }
+            });
             ThreadPool.QueueUserWorkItem(o => ws.OnMessage += (sender, e) =>
              {
                  RunOnUiThread(() => dataSmall.Text += e.Data + "\r\n");
@@ -56,6 +68,10 @@ namespace TestClient
             {
                 dataBig.Text = "Connection Closed";
             };
+            ws.OnOpen += (sender, e) =>
+            {
+                RunOnUiThread(() => dataBig.Text = "Connected");
+            };
 
 
             //// Enter rest querry to PS2 API
@@ -63,29 +79,42 @@ namespace TestClient
             {
                 var input = inputName.Text.ToLower();
                 string url = @"http://census.daybreakgames.com/s:3216732167/get/ps2:v2/character/?name.first_lower=" + input;
-
-                string result = "";
+                string data = "";
                 ////ENTER METHOD HERE!
-                RunOnUiThread(() => dataBig.Text = url);
-                result += await GetIdAsync(url);
-                RunOnUiThread(() => dataBig.Text = "RECEIVED DATA");
+                data += await GetIdAsync(url);
+                string result = FindChampId(data);
                 ////
                 ////Enter result here
                 RunOnUiThread(() => dataSmall.Text =($"Char_ID = {result}" ));
+                champId = result;
             };
 
-
-
+            testIfOnline.Click += async (object sender, EventArgs er) =>
+            {
+                if (champId != "")
+                {
+                    string url =
+                        @"http://census.daybreakgames.com/s:3216732167/get/ps2:v2/characters_online_status/?character_id=" +
+                        champId;
+                    string data = "";
+                    data += await GetIdAsync(url);
+                    string result = CheckIfOnline(data);
+                    RunOnUiThread(() => dataSmall.Text = ($"{inputName.Text} is {result}"));
+                }
+            };
+            
             connectButton.Click += (object senderer, EventArgs eer) =>
        {
 
-           //////////////////////////// 
+           //↓Connect to WebSocketServer
            ThreadPool.QueueUserWorkItem(o => WSConnect(ws));
+           //↓Send result from testNameButton
+           
            ///////////////////////////
-           if (ws.IsAlive)
+           /*if (ws.IsAlive)
            {
                RunOnUiThread(() => dataBig.Text = "Connection Alive");
-           }
+           }*/
        };
 
             disconnecButton.Click += (object sender, EventArgs er) =>
@@ -115,21 +144,8 @@ namespace TestClient
             HttpResponseMessage response = await client.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
-                Character_List root = new Character_List();
                 string data = response.Content.ReadAsStringAsync().Result;
-                string[] temp = data.Split(new char[] {'{', ','}).ToArray();
-                string temp2 = "";
-                foreach (var item in temp)
-                {
-                    if (item.Contains("character_id"))
-                    {
-                        temp2 = item;
-                    }
-                }    
-                Regex reg = new Regex("\\d+");
-                Match mat = reg.Match(temp2);
-                string result = mat.Value;
-                return (result);
+                return (data);
             }
             else
             {
@@ -137,58 +153,50 @@ namespace TestClient
             }
         }
 
-        public class Character_List
+        private static string FindChampId(string data)
         {
-            public string character_id { get; set; }
-            public Name name { get; set; }
-            public string faction_id { get; set; }
-            public string head_id { get; set; }
-            public string title_id { get; set; }
-            public Times times { get; set; }
-            public Certs certs { get; set; }
-            public Battle_Rank battle_rank { get; set; }
-            public string profile_id { get; set; }
-            public Daily_Ribbon daily_ribbon { get; set; }
+            string[] temp = data.Split(new char[] { '{', ',' }).ToArray();
+            string temp2 = "";
+            foreach (var item in temp)
+            {
+                if (item.Contains("character_id"))
+                {
+                    temp2 = item;
+                }
+            }
+            Regex reg = new Regex("\\d+");
+            Match mat = reg.Match(temp2);
+            string result = mat.Value;
+            return result;
         }
 
-        public class Name
+        private static string CheckIfOnline(string data)
         {
-            public string first { get; set; }
-            public string first_lower { get; set; }
-        }
+            string[] temp = data.Split(new char[] { '{', ',' }).ToArray();
+            string temp2 = "";
+            foreach (var item in temp)
+            {
+                if (item.Contains("online_status"))
+                {
+                    temp2 = item;
+                }
+            }
+            Regex reg = new Regex("\\d");
+            Match mat = reg.Match(temp2);
+            string result = "Err";
+            if (mat.Success)
+            {
+                if (mat.Value == "1")
+                {
+                    result = "Online";
 
-        public class Times
-        {
-            public string creation { get; set; }
-            public string creation_date { get; set; }
-            public string last_save { get; set; }
-            public string last_save_date { get; set; }
-            public string last_login { get; set; }
-            public string last_login_date { get; set; }
-            public string login_count { get; set; }
-            public string minutes_played { get; set; }
-        }
-
-        public class Certs
-        {
-            public string earned_points { get; set; }
-            public string gifted_points { get; set; }
-            public string spent_points { get; set; }
-            public string available_points { get; set; }
-            public string percent_to_next { get; set; }
-        }
-
-        public class Battle_Rank
-        {
-            public string percent_to_next { get; set; }
-            public string value { get; set; }
-        }
-
-        public class Daily_Ribbon
-        {
-            public string count { get; set; }
-            public string time { get; set; }
-            public string date { get; set; }
+                }
+                if (mat.Value == "0")
+                {
+                    result = "Offline";
+                }
+            }
+            return result;
         }
     }
 }

@@ -19,6 +19,11 @@
         android:layout_height="wrap_content"
         android:id="@+id/TestNameButton" />
     <Button
+        android:text="Test if Champ is Online"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/testIfOnlineButton" />
+    <Button
         android:text="Connect to Server"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
