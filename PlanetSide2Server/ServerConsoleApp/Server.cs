@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using System.Data.SqlClient;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
@@ -10,7 +11,7 @@ using System.Threading;
 
 namespace ServerConsoleApp
 {
-    
+
 
     public class Server
     {
@@ -28,11 +29,10 @@ namespace ServerConsoleApp
                 Console.WriteLine("Listening on port {0}, and providing WebSocket services:", wssv.Port);
                 foreach (var path in wssv.WebSocketServices.Paths)
                     Console.WriteLine("- {0}", path);
+
             }
-            
             Console.ReadLine();
             wssv.Stop();
-
-        }                       
+        }
     }
 }

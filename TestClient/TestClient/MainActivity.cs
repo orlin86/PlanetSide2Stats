@@ -49,11 +49,8 @@ namespace TestClient
             
             ThreadPool.QueueUserWorkItem(o => ws.OnOpen += (sender, e) =>
             {
-                if (champId != "")
-                {
-                    RunOnUiThread(() => dataBig.Text += "  Data Sent  " + champId);
-                    ws.Send(champId);
-                }
+                    RunOnUiThread(() => dataBig.Text += "  Data Sent  " + inputName);
+                    ws.Send(inputName.Text);                
             });
             ThreadPool.QueueUserWorkItem(o => ws.OnMessage += (sender, e) =>
              {
