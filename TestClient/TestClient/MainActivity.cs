@@ -17,11 +17,9 @@ using Newtonsoft.Json.Linq;
 using Org.Json;
 using WebSocketSharp;
 
-
-
-namespace TestClient
+namespace Client
 {
-    [Activity(Label = "TestClient", MainLauncher = true, Icon = "@drawable/icon")]
+    [Activity(Label = "Client", MainLauncher = true, Icon = "@drawable/icon")]
     public class MainActivity : Activity
     {
 
@@ -32,164 +30,113 @@ namespace TestClient
             SetContentView(Resource.Layout.Main);
 
             EditText inputName = FindViewById<EditText>(Resource.Id.InputName);
-            Button testNameButton = FindViewById<Button>(Resource.Id.TestNameButton);
             Button connectButton = FindViewById<Button>(Resource.Id.ConnectButton);
-            Button testIfOnline = FindViewById<Button>(Resource.Id.testIfOnlineButton);
-            Button disconnecButton = FindViewById<Button>(Resource.Id.DisconnectButton);
-            TextView dataBig = FindViewById<TextView>(Resource.Id.DataBig);
-            TextView dataSmall = FindViewById<TextView>(Resource.Id.DataSmall);
+            TextView kills = FindViewById<TextView>(Resource.Id.Kills);
+            TextView deaths = FindViewById<TextView>(Resource.Id.Deaths);
+            TextView isOnline = FindViewById<TextView>(Resource.Id.IsOnline);
+            TextView timePlayed = FindViewById<TextView>(Resource.Id.TimePlayed);
+            TextView smallText = FindViewById<TextView>(Resource.Id.SmallText);
 
-
-            //// Wbsocket Params
-            //WebSocket ws = new WebSocket("wss://push.planetside2.com/streaming?environment=ps2&service-id=s:3216732167");
-
-            string champId = "";
             WebSocket ws = new WebSocket("ws://92.247.240.220:4649/SendKills");
             ws.EmitOnPing = false;
-            
+            int Kills = 0;
+            int Deaths = 0;
+            List<string> text = new List<string>();
+
             ThreadPool.QueueUserWorkItem(o => ws.OnOpen += (sender, e) =>
             {
-                    RunOnUiThread(() => dataBig.Text += "  Data Sent  " + inputName);
-                    ws.Send(inputName.Text);                
+                text.Insert(0, "Connected");
+                if (text.Count >= 5)
+                {
+                    text.Remove(text.Last());
+                }
+                RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
+                ws.Send(inputName.Text);
             });
+
             ThreadPool.QueueUserWorkItem(o => ws.OnMessage += (sender, e) =>
-             {
-                 RunOnUiThread(() => dataSmall.Text += e.Data + "\r\n");
-             });
+            {
+                if (e.Data.Contains("Kill"))
+                {
+                    Kills++;
+                    RunOnUiThread(() => kills.Text = Kills.ToString());
+                }
+                if (e.Data.Contains("Death"))
+                {
+                    Deaths++;
+                    RunOnUiThread(() => deaths.Text = Deaths.ToString());
+                }
+                if (e.Data.Contains("Online"))
+                {
+                    RunOnUiThread(() => connectButton.SetBackgroundColor(Android.Graphics.Color.Green));
+                    RunOnUiThread(() => isOnline.Text = "Character is ONLINE");
+                }
+                if (e.Data.Contains("Offline"))
+                {
+                    RunOnUiThread(() => connectButton.SetBackgroundColor(Android.Graphics.Color.Red));
+                    RunOnUiThread(() => isOnline.Text = "Character is OFFLINE");
+                }
+
+                text.Insert(0, e.Data);
+                if (text.Count >= 5)
+                {
+                    text.Remove(text.Last());
+                }
+                RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
+            });
 
             ws.OnError += (sender, e) =>
             {
-                //dataBig.Text = e.Exception.ToString();
+                text.Insert(0, e.Message.ToString());
+                if (text.Count >= 5)
+                {
+                    text.Remove(text.Last());
+                }
+                RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
             };
-
             ws.OnClose += (sender, e) =>
             {
-                dataBig.Text = "Connection Closed";
+                text.Insert(0, "Disconnected");
+                if (text.Count >= 5)
+                {
+                    text.Remove(text.Last());
+                }
+                RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
+                ws.Send(inputName.Text);
             };
 
             //// Enter rest querry to PS2 API
-            testNameButton.Click += async (object sender, EventArgs er) =>
-            {
-                var input = inputName.Text.ToLower();
-                string url = @"http://census.daybreakgames.com/s:3216732167/get/ps2:v2/character/?name.first_lower=" + input;
-                string data = "";
-                ////ENTER METHOD HERE!
-                data += await GetIdAsync(url);
-                string result = FindChampId(data);
-                ////
-                ////Enter result here
-                RunOnUiThread(() => dataSmall.Text =($"Char_ID = {result}" ));
-                champId = result;
-            };
-
-            testIfOnline.Click += async (object sender, EventArgs er) =>
-            {
-                if (champId != "")
-                {
-                    string url =
-                        @"http://census.daybreakgames.com/s:3216732167/get/ps2:v2/characters_online_status/?character_id=" +
-                        champId;
-                    string data = "";
-                    data += await GetIdAsync(url);
-                    string result = CheckIfOnline(data);
-                    RunOnUiThread(() => dataSmall.Text = ($"{inputName.Text} is {result}"));
-                }
-            };
-            
             connectButton.Click += (object senderer, EventArgs eer) =>
-       {
-
-           //↓Connect to WebSocketServer
-           ThreadPool.QueueUserWorkItem(o => WSConnect(ws));
-           //↓Send result from testNameButton
-           
-           ///////////////////////////
-           /*if (ws.IsAlive)
-           {
-               RunOnUiThread(() => dataBig.Text = "Connection Alive");
-           }*/
-       };
-
-            disconnecButton.Click += (object sender, EventArgs er) =>
             {
-                if (ws.IsAlive)
+                if (connectButton.Text == "CONNECT TO SERVER")
                 {
-                    ws.Close();
-                    dataBig.Text = "Connection Closed";
+                    ThreadPool.QueueUserWorkItem(o => WSConnect(ws));
+                    RunOnUiThread(() => connectButton.SetBackgroundColor(Android.Graphics.Color.Red));
+                    RunOnUiThread(() => connectButton.Text = "DISCONNECT");
                 }
-                else
+                else if (connectButton.Text == "DISCONNECT")
                 {
-                    dataBig.Text = "Not Connected";
+                    if (ws.IsAlive)
+                    {
+                        ws.Close();
+                    }
+                    connectButton.Text = "CONNECT TO SERVER";
+                    connectButton.SetBackgroundColor(Android.Graphics.Color.Green);
                 }
             };
+            inputName.Click += (object senderer, EventArgs eer) =>
+            {
+                if (inputName.Text == "Enter Character Name")
+                {
+                    inputName.Text = "";
+                }
+            };
+
         }
 
         private void WSConnect(WebSocket ws)
         {
             ws.Connect();
-        }
-
-        private async Task<string> GetIdAsync(string url)
-        {
-            HttpClient client = new HttpClient();
-            client.DefaultRequestHeaders.Accept.Add(
-                new MediaTypeWithQualityHeaderValue("application/json"));
-            HttpResponseMessage response = await client.GetAsync(url);
-            if (response.IsSuccessStatusCode)
-            {
-                string data = response.Content.ReadAsStringAsync().Result;
-                return (data);
-            }
-            else
-            {
-                return ("Err");
-            }
-        }
-
-        private static string FindChampId(string data)
-        {
-            string[] temp = data.Split(new char[] { '{', ',' }).ToArray();
-            string temp2 = "";
-            foreach (var item in temp)
-            {
-                if (item.Contains("character_id"))
-                {
-                    temp2 = item;
-                }
-            }
-            Regex reg = new Regex("\\d+");
-            Match mat = reg.Match(temp2);
-            string result = mat.Value;
-            return result;
-        }
-
-        private static string CheckIfOnline(string data)
-        {
-            string[] temp = data.Split(new char[] { '{', ',' }).ToArray();
-            string temp2 = "";
-            foreach (var item in temp)
-            {
-                if (item.Contains("online_status"))
-                {
-                    temp2 = item;
-                }
-            }
-            Regex reg = new Regex("\\d");
-            Match mat = reg.Match(temp2);
-            string result = "Err";
-            if (mat.Success)
-            {
-                if (mat.Value == "1")
-                {
-                    result = "Online";
-
-                }
-                if (mat.Value == "0")
-                {
-                    result = "Offline";
-                }
-            }
-            return result;
         }
     }
 }

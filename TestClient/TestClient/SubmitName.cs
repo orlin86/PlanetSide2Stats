@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System;
 using System.Threading;
-using TestClient;
+using Client;
 using WebSocketSharp;
 namespace Core
 {

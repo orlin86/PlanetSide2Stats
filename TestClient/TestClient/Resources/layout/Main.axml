@@ -3,16 +3,6 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <TextView
-        android:text="Enter character name:"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/textView1" />
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/InputName" />
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="fill_parent"
@@ -20,39 +10,118 @@
         android:id="@+id/linearLayout1"
         android:layout_marginBottom="0.0dp">
         <Button
-            android:text="Test Name"
-            android:layout_width="0dp"
-            android:layout_height="fill_parent"
-            android:layout_weight="1"
-            android:id="@+id/TestNameButton" />
-        <Button
-            android:text="Test if Champ is Online"
-            android:layout_width="0dp"
-            android:layout_height="fill_parent"
-            android:layout_weight="1"
-            android:id="@+id/testIfOnlineButton" />
+            android:text="Connect to Server"
+            android:id="@+id/ConnectButton"
+            android:layout_width="120dp"
+            android:layout_height="match_parent"
+            android:background="@android:color/holo_blue_dark"
+            android:textColor="@android:color/background_light"
+            android:layout_margin="5.0dp"
+            android:gravity="center" />
+        <EditText
+            android:id="@+id/InputName"
+            android:text="Enter character name:"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/background_light"
+            android:layout_margin="5dp"
+            android:textColor="@android:color/background_dark"
+            android:gravity="center_vertical"
+            android:paddingLeft="10dp" />
     </LinearLayout>
-    <Button
-        android:text="Connect to Server"
+    <LinearLayout
+        android:orientation="horizontal"
+        android:minWidth="25px"
+        android:minHeight="25dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/ConnectButton" />
-    <Button
-        android:text="Disconnect"
+        android:id="@+id/linearLayout2">
+        <TextView
+            android:text="Kills"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:textSize="30dp"
+            android:gravity="center"
+            android:id="@+id/KillsText"
+            android:layout_margin="5dp"
+            android:shadowRadius="5"
+            android:shadowColor="#ffb4b4b4"
+            android:shadowDx="5"
+            android:shadowDy="5"
+            android:background="#90EE90" />
+        <TextView
+            android:text="Deaths"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:textSize="30dp"
+            android:gravity="center"
+            android:id="@+id/DeathsText"
+            android:layout_margin="5dp"
+            android:background="#CD5C5C" />
+    </LinearLayout>
+    <LinearLayout
+        android:orientation="horizontal"
+        android:minWidth="25px"
+        android:minHeight="100dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/DisconnectButton" />
+        android:id="@+id/linearLayout2">
+        <TextView
+            android:text="0"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:textSize="50dp"
+            android:gravity="center"
+            android:id="@+id/Kills"
+            android:layout_margin="5dp"
+            android:shadowRadius="5"
+            android:shadowColor="#ffb4b4b4"
+            android:shadowDx="5"
+            android:shadowDy="5"
+            android:background="#90EE90" />
+        <TextView
+            android:text="0"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:textSize="50dp"
+            android:gravity="center"
+            android:id="@+id/Deaths"
+            android:layout_margin="5dp"
+            android:background="#CD5C5C" />
+    </LinearLayout>
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="60dp"
+        android:id="@+id/linearLayout1"
+        android:layout_marginBottom="0.0dp">
+        <TextView
+            android:text="Character is OFFLINE"
+            android:id="@+id/IsOnline"
+            android:layout_width="120dp"
+            android:layout_height="match_parent"
+            android:background="@android:color/holo_red_light"
+            android:textColor="@android:color/background_light"
+            android:layout_margin="5.0dp"
+            android:gravity="center" />
+        <TextView
+            android:id="@+id/TimePlayed"
+            android:text="00:00:00"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/holo_blue_light"
+            android:layout_margin="5dp"
+            android:textSize="40dp"
+            android:gravity="center" />
+    </LinearLayout>
     <TextView
-        android:text="Init"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/DataBig"
-        android:layout_marginBottom="0.0dp" />
-    <TextView
-        android:text="Waiting for Data"
+        android:text="Small Text"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/DataSmall" />
+        android:layout_height="wrap_content"
+        android:id="@+id/SmallText" />
 </LinearLayout>
