@@ -196,7 +196,7 @@ namespace ServerConsoleApp
                     {
                         Console.WriteLine(e.ToString());
                     }
-                    SqlCommand addCommand = new SqlCommand($"UPDATE Champions\r\nSET IsOnline=1\r\nWHERE ChampId=\'" + id + "\';", db);
+                    SqlCommand addCommand = new SqlCommand($"UPDATE Champions\r\nSET IsOnline=1\r\nWHERE ChampId=\'" + id + "\'", db);
                     int rowsAffected = addCommand.ExecuteNonQuery();
                     Console.WriteLine(rowsAffected);
                     db.Close();
@@ -216,7 +216,7 @@ namespace ServerConsoleApp
                     {
                         Console.WriteLine(e.ToString());
                     }
-                    SqlCommand addCommand = new SqlCommand($"UPDATE Champions\r\nSET IsOnline=0\r\nWHERE ChampId=\'" + id + "\';", db);
+                    SqlCommand addCommand = new SqlCommand($"UPDATE Champions\r\nSET IsOnline=0\r\nWHERE ChampId=\'" + id + "\'", db);
                     int rowsAffected = addCommand.ExecuteNonQuery();
                     Console.WriteLine(rowsAffected);
                     db.Close();
