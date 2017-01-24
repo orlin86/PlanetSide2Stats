@@ -186,6 +186,7 @@ namespace ServerConsoleApp
             {
                 using (SqlConnection db = new SqlConnection())
                 {
+                    int rowsAffected = 0;
                     db.ConnectionString =
                         "Server=Orlin-Home\\SqlExpress;Database=LolServer;Trusted_Connection=true;connection timeout=30";
                     try
@@ -196,8 +197,16 @@ namespace ServerConsoleApp
                     {
                         Console.WriteLine(e.ToString());
                     }
-                    SqlCommand addCommand = new SqlCommand($"UPDATE Champions\r\nSET IsOnline=1\r\nWHERE ChampId=\'" + id + "\'", db);
-                    int rowsAffected = addCommand.ExecuteNonQuery();
+                    try
+                    {
+                        SqlCommand addCommand = new SqlCommand($"UPDATE Champions\r\nSET IsOnline=1\r\nWHERE ChampId=\'" + id + "\'", db);
+                         rowsAffected = addCommand.ExecuteNonQuery();
+
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
                     Console.WriteLine(rowsAffected);
                     db.Close();
                 }
@@ -205,7 +214,8 @@ namespace ServerConsoleApp
             if (!isAlive)
             {
                 using (SqlConnection db = new SqlConnection())
-                {
+                {int rowsAffected = 0;
+
                     db.ConnectionString =
                         "Server=Orlin-Home\\SqlExpress;Database=LolServer;Trusted_Connection=true;connection timeout=30";
                     try
@@ -216,8 +226,15 @@ namespace ServerConsoleApp
                     {
                         Console.WriteLine(e.ToString());
                     }
-                    SqlCommand addCommand = new SqlCommand($"UPDATE Champions\r\nSET IsOnline=0\r\nWHERE ChampId=\'" + id + "\'", db);
-                    int rowsAffected = addCommand.ExecuteNonQuery();
+                    try
+                    {
+                        SqlCommand addCommand = new SqlCommand($"UPDATE Champions\r\nSET IsOnline=0\r\nWHERE ChampId=\'" + id + "\'", db);
+                        rowsAffected = addCommand.ExecuteNonQuery();
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
                     Console.WriteLine(rowsAffected);
                     db.Close();
                 }

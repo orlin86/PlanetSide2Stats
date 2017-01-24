@@ -20,8 +20,10 @@ namespace ServerConsoleApp
             WebSocketServer wssv = new WebSocketServer(System.Net.IPAddress.Any, 4649);
 #if DEBUG
             wssv.Log.Level = LogLevel.Trace;
+            wssv.WaitTime = TimeSpan.FromSeconds(10);
 #endif
-            wssv.KeepClean = false;
+            wssv.KeepClean = true;
+            wssv.ReuseAddress = true;
             wssv.AddWebSocketService<SendKills>("/SendKills");
             wssv.Start();
             if (wssv.IsListening)

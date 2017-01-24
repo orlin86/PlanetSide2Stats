@@ -55,58 +55,8 @@ namespace ServerConsoleApp
             ws.OnMessage += (sender, e) =>
             {
                 Notify(e);
-
-                if (e.Data.Contains("PlayerLogin"))
-                {
-                    try
-                    {
-                        LoginMsg thisMsg = JsonConvert.DeserializeObject<LoginMsg>(e.Data);
-                        SqlQuerries.ReplaceAlive(true, thisMsg.payload.character_id.ToString());
-                        if (thisMsg.payload.character_id == _client.QuerryId)
-                        {
-                            Console.WriteLine("/////");
-                            Console.WriteLine(SqlQuerries.GetNameById(thisMsg.payload.character_id));
-                            Console.WriteLine($"Sending PlayerLogin To Client {_client.IpAddress}");
-                            Console.WriteLine("/////");
-                            Send($"{_client.Querry} Online");
-                        }
-                    }
-                    catch (Exception exception)
-                    {
-                        Console.WriteLine(exception);
-                    }
-                }
-                if (e.Data.Contains("PlayerLogout"))
-                {
-                    LogoutMsg thisMsg = JsonConvert.DeserializeObject<LogoutMsg>(e.Data);
-                    SqlQuerries.ReplaceAlive(false, thisMsg.payload.character_id.ToString());
-                    if (thisMsg.payload.character_id == _client.QuerryId)
-                    {
-                        Console.WriteLine("/////");
-                        Console.WriteLine(SqlQuerries.GetNameById(thisMsg.payload.character_id));
-                        Console.WriteLine($"Sending PlayerLogout To Client {_client.IpAddress}");
-                        Console.WriteLine("/////");
-                        Send($"{_client.Querry} Offline");
-                    }
-                }
-
-                if (e.Data.Contains("Death"))
-                {
-                    DeathMsg thisMsg = JsonConvert.DeserializeObject<DeathMsg>(e.Data);
-                    if (thisMsg.payload.attacker_character_id == _client.QuerryId)
-                    {
-                        Console.WriteLine("/////");
-                        Console.WriteLine(SqlQuerries.GetNameById(thisMsg.payload.attacker_character_id));
-                        Console.WriteLine($"Sending KILL To Client {_client.IpAddress}");
-                        Console.WriteLine("/////");
-                        Send($"{_client.Querry.ToString()} Kill {thisMsg.payload.character_id}");
-                    }
-                    else if (thisMsg.payload.character_id == _client.QuerryId)
-                    {
-                        Console.WriteLine($"Sending Death To Client {_client.IpAddress}");
-                        Send($"{_client.Querry.ToString()} Death by {thisMsg.payload.character_id}");
-                    }
-                }
+                LoginLogoutNotifier(e);
+                DeathNotifier(e);
 
                 // ↓ sends to client data, containing death, !! SWICH WITH E.DATA
                 /*if (e.Data.Contains(_client.Querry.ToString()))
@@ -117,6 +67,61 @@ namespace ServerConsoleApp
             _name = getName();
         }
 
+        private void DeathNotifier(MessageEventArgs e)
+        {
+            if (e.Data.Contains("Death")&&e.Data.Contains("payload"))
+            {
+                DeathMsg thisMsg = new DeathMsg();
+                thisMsg = JsonConvert.DeserializeObject<DeathMsg>(e.Data);
+                if (!thisMsg.payload.attacker_character_id.IsNullOrEmpty())
+                {
+                    if (thisMsg.payload.attacker_character_id == _client.QuerryId)
+                    {
+                        Console.WriteLine("/////");
+                        Console.WriteLine($"Sending KILL To Client {_client.IpAddress}");
+                        Console.WriteLine("/////");
+                        Send($"Kill {_client.Querry}");
+                    }
+                    else if (thisMsg.payload.character_id == _client.QuerryId)
+                    {
+                        Console.WriteLine($"Sending Death To Client {_client.IpAddress}");
+                        Send($"Death {_client.Querry}");
+                    }
+                }
+            }
+        }
+
+        private void LoginLogoutNotifier(MessageEventArgs e)
+        {
+            if (e.Data.Contains("PlayerLogin") && e.Data.Contains("payload"))
+            {
+                LoginMsg thisMsg = new LoginMsg();
+                thisMsg = JsonConvert.DeserializeObject<LoginMsg>(e.Data);
+                if (!thisMsg.payload.character_id.IsNullOrEmpty())
+                {
+                    SqlQuerries.ReplaceAlive(true, thisMsg.payload.character_id.ToString());
+                    if (thisMsg.payload.character_id == _client.QuerryId)
+                    {
+                        Console.WriteLine("/////");
+                        Console.WriteLine($"Sending PlayerLogin To Client {_client.IpAddress}");
+                        Console.WriteLine("/////");
+                        Send($"{_client.Querry} Online");
+                    }
+                }
+            }
+            else if (e.Data.Contains("PlayerLogout") && e.Data.Contains("payload"))
+            {
+                LogoutMsg thisMsg = JsonConvert.DeserializeObject<LogoutMsg>(e.Data);
+                SqlQuerries.ReplaceAlive(false, thisMsg.payload.character_id.ToString());
+                if (thisMsg.payload.character_id == _client.QuerryId)
+                {
+                    Console.WriteLine("/////");
+                    Console.WriteLine($"Sending PlayerLogout To Client {_client.IpAddress}");
+                    Console.WriteLine("/////");
+                    Send($"{_client.Querry} Offline");
+                }
+            }
+        }
 
         protected override void OnMessage(MessageEventArgs e)
         {
@@ -185,6 +190,9 @@ namespace ServerConsoleApp
 
         public WssvClient()
         {
+            IpAddress = "";
+            Querry = "";
+            QuerryId = "";
         }
 
         public WssvClient(string ip, string querry, string querryId)

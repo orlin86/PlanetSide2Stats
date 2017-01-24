@@ -28,7 +28,9 @@ namespace PS2LS
             TextView smallText = FindViewById<TextView>(Resource.Id.SmallText);
 
             WebSocket ws = new WebSocket("ws://92.247.240.220:4649/SendKills");
-            ws.EmitOnPing = false;
+            ws.EmitOnPing = true;
+            ws.WaitTime = TimeSpan.FromSeconds(10);
+
             int Kills = 0;
             int Deaths = 0;
             List<string> text = new List<string>();
@@ -43,37 +45,40 @@ namespace PS2LS
                 RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
                 ws.Send(inputName.Text);
             });
-            ThreadPool.QueueUserWorkItem(o => ws.OnMessage += (sender, e) =>
+            ws.OnMessage += (sender, e) =>
             {
-                if (e.Data.Contains("Kill"))
+                if (e.IsText)
                 {
-                    Kills++;
-                    RunOnUiThread(() => kills.Text = Kills.ToString());
-                }
-                if (e.Data.Contains("Death"))
-                {
-                    Deaths++;
-                    RunOnUiThread(() => deaths.Text = Deaths.ToString());
-                }
-                if (e.Data.Contains("Online"))
-                {
-                    RunOnUiThread(() => connectButton.SetBackgroundColor(Android.Graphics.Color.Green));
-                    RunOnUiThread(() => isOnline.Text = "Character is ONLINE");
-                }
-                if (e.Data.Contains("Offline"))
-                {
-                    RunOnUiThread(() => connectButton.SetBackgroundColor(Android.Graphics.Color.Red));
-                    RunOnUiThread(() => isOnline.Text = "Character is OFFLINE");
-                }
+                    if (e.Data.Contains("Kill"))
+                    {
+                        Kills++;
+                        RunOnUiThread(() => kills.Text = Kills.ToString());
+                    }
+                    if (e.Data.Contains("Death"))
+                    {
+                        Deaths++;
+                        RunOnUiThread(() => deaths.Text = Deaths.ToString());
+                    }
+                    if (e.Data.Contains("Online"))
+                    {
+                        RunOnUiThread(() => isOnline.SetBackgroundColor(Android.Graphics.Color.Green));
+                        RunOnUiThread(() => isOnline.Text = "Character is ONLINE");
+                    }
+                    if (e.Data.Contains("Offline"))
+                    {
+                        RunOnUiThread(() => isOnline.SetBackgroundColor(Android.Graphics.Color.Red));
+                        RunOnUiThread(() => isOnline.Text = "Character is OFFLINE");
+                    }
 
-                text.Insert(0, e.Data);
-                if (text.Count >= 5)
-                {
-                    text.Remove(text.Last());
+                    text.Insert(0, e.Data);
+                    if (text.Count >= 5)
+                    {
+                        text.Remove(text.Last());
+                    }
+                    RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
                 }
-                //RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
-                smallText.Text = e.Data;
-            });
+                
+            };
             ws.OnError += (sender, e) =>
             {
                 text.Insert(0, e.Message.ToString());
@@ -101,8 +106,8 @@ namespace PS2LS
                 if (connectButton.Text == "CONNECT TO SERVER")
                 {
                     ThreadPool.QueueUserWorkItem(o => WSConnect(ws));
-                    RunOnUiThread(() => connectButton.SetBackgroundColor(Android.Graphics.Color.Red));
-                    RunOnUiThread(() => connectButton.Text = "DISCONNECT");
+                    connectButton.SetBackgroundColor(Android.Graphics.Color.Red);
+                    connectButton.Text = "DISCONNECT";
                 }
                 else if (connectButton.Text == "DISCONNECT")
                 {
@@ -114,6 +119,7 @@ namespace PS2LS
                     connectButton.SetBackgroundColor(Android.Graphics.Color.Green);
                 }
             };
+
             inputName.Click += (object senderer, EventArgs eer) =>
             {
                 if (inputName.Text == "Enter character name:")
@@ -121,6 +127,15 @@ namespace PS2LS
                     inputName.Text = "";
                 }
             };
+
+            if (!ws.IsAlive)
+            {
+                timePlayed.Text = "Alive";
+            }
+            if (ws.IsAlive)
+            {
+                timePlayed.Text = "Dead";
+            }
 
         }
 
