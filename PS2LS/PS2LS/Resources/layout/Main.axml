@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/background">
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="fill_parent"
@@ -14,8 +15,8 @@
             android:id="@+id/ConnectButton"
             android:layout_width="120dp"
             android:layout_height="match_parent"
-            android:background="@android:color/holo_blue_dark"
-            android:textColor="@android:color/background_light"
+            android:background="#CA4682B4"
+            android:textColor="#FFFFFF"
             android:layout_margin="5.0dp"
             android:gravity="center" />
         <EditText
@@ -23,7 +24,7 @@
             android:text="Enter character name:"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@android:color/background_light"
+            android:background="#CAFFFFFF"
             android:layout_margin="5dp"
             android:textColor="@android:color/background_dark"
             android:gravity="center_vertical"
@@ -49,7 +50,8 @@
             android:shadowColor="#ffb4b4b4"
             android:shadowDx="5"
             android:shadowDy="5"
-            android:background="#90EE90" />
+            android:background="#AA90EE90"
+            android:textColor="#FFFFFF" />
         <TextView
             android:text="Deaths"
             android:layout_width="0dp"
@@ -59,7 +61,8 @@
             android:gravity="center"
             android:id="@+id/DeathsText"
             android:layout_margin="5dp"
-            android:background="#CD5C5C" />
+            android:background="#AACD5C5C"
+            android:textColor="#FFFFFF" />
     </LinearLayout>
     <LinearLayout
         android:orientation="horizontal"
@@ -81,7 +84,8 @@
             android:shadowColor="#ffb4b4b4"
             android:shadowDx="5"
             android:shadowDy="5"
-            android:background="#90EE90" />
+            android:background="#AA90EE90"
+            android:textColor="#FFFFFF" />
         <TextView
             android:text="0"
             android:layout_width="0dp"
@@ -91,7 +95,8 @@
             android:gravity="center"
             android:id="@+id/Deaths"
             android:layout_margin="5dp"
-            android:background="#CD5C5C" />
+            android:background="#AACD5C5C"
+            android:textColor="#FFFFFF" />
     </LinearLayout>
     <LinearLayout
         android:orientation="horizontal"
@@ -104,7 +109,7 @@
             android:id="@+id/IsOnline"
             android:layout_width="120dp"
             android:layout_height="match_parent"
-            android:background="@android:color/holo_red_light"
+            android:background="#AADC143C"
             android:textColor="@android:color/background_light"
             android:layout_margin="5.0dp"
             android:gravity="center" />
@@ -113,15 +118,18 @@
             android:text="00:00:00"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@android:color/holo_blue_light"
+            android:background="#AA4682B4"
             android:layout_margin="5dp"
             android:textSize="40dp"
-            android:gravity="center" />
+            android:gravity="center"
+            android:textColor="#FFFFFF" />
     </LinearLayout>
     <TextView
         android:text="Small Text"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/SmallText" />
+        android:layout_height="match_parent"
+        android:id="@+id/SmallText"
+        android:background="#80FFFFFF"
+        android:textColor="#222222" />
 </LinearLayout>
