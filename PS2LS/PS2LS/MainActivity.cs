@@ -118,7 +118,7 @@ namespace PS2LS
                             }
                         }
                     }
-                    if (e.Data.Contains("Online"))
+                    if (e.Data.Contains("Online")|| e.Data.Contains("Death") && e.Data.Contains("payload"))
                     {
                         RunOnUiThread(() => isOnline.SetBackgroundColor(Android.Graphics.Color.Green));
                         RunOnUiThread(() => isOnline.Text = "Character is ONLINE");
@@ -189,7 +189,6 @@ namespace PS2LS
             };
 
         }
-
         private static void WSConnect(WebSocket ws)
         {
             ws.ConnectAsync();
