@@ -1,6 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
+using System.Net.WebSockets;
 using System.Reflection;
+using System.Runtime.Remoting.Contexts;
 using System.Security.Principal;
 using System.Threading;
 using System.Timers;
@@ -8,77 +11,44 @@ using Newtonsoft.Json;
 using WebSocketSharp;
 using WebSocketSharp.Net.WebSockets;
 using WebSocketSharp.Server;
+using WebSocket = WebSocketSharp.WebSocket;
+using ServerConsoleApp;
 
 namespace ServerConsoleApp
 {
     public class SendKills : WebSocketBehavior
     {
+        
         private WssvClient _client;
-        private static readonly WebSocket ws =
-            new WebSocket("wss://push.planetside2.com/streaming?environment=ps2&service-id=s:3216732167");
         private Notifier nf = new Notifier();
 
-
+        public void ProcessMessage(Object sender, MessageEventArgs e)
+        {
+            if (e.Data.Contains("heartbeat"))
+            {
+                Send($"{e.Data}");
+            }
+            DeathNotifier(e);
+            LoginLogoutNotifier(e);
+        }
         public SendKills()
         {
             //IgnoreExtensions = true;
-            //ws.EmitOnPing = true;
-            ws.OnOpen += (sender, e) =>
-                {
-                };
-            ws.OnMessage += (sender, e) =>
-            {
-                Notify(e);
-                if (e.Data.Contains("heartbeat"))
-                {
-                    Send($"{e.Data}");
-                }
-                DeathNotifier(e);
-                LoginLogoutNotifier(e);
-            };
-            Console.WriteLine("");
-            if (!ws.IsAlive)
-            {
-                ws.Connect();
-                if (ws.IsAlive)
-                {
-                    Console.WriteLine("OPEN !!!!!!!!");
-                    Console.WriteLine("OPEN !!!!!!!!");
-                    Console.WriteLine("OPEN !!!!!!!!");
-                    Console.WriteLine("OPEN !!!!!!!!");
-                    Console.WriteLine("OPEN !!!!!!!!");
-                    System.Timers.Timer initTimer = new System.Timers.Timer();
-                    initTimer.Interval = 1000;
-                    initTimer.AutoReset = false;
-                    initTimer.Elapsed += new ElapsedEventHandler(SendAliveQuerry);
-                    initTimer.Enabled = true;
-                }
-            }
-        }
-
-        //↓ Method related to the timer in ws.Connect
-        private static void SendAliveQuerry(object source, ElapsedEventArgs e)
-        {
-            string[] allIds = SqlQuerries.GetAllIds();
-
-            foreach (var item in allIds)
-            {
-                string sendString =
-            "{\r\n\t\"service\":\"event\",\r\n\t\"action\":\"subscribe\",\r\n\t\"characters\":[" + item + "],\r\n\t\"eventNames\":[\"PlayerLogin\", \"PlayerLogout\"]\r\n}";
-                System.Timers.Timer initTimer = new System.Timers.Timer();
-                ws.Send(sendString);
-                Thread.Sleep(100);
-
-            }
+            //Server.ws.EmitOnPing = true;
+            //Server.ws.OnOpen += (sender, e) =>
+            //    {
+            //    };
+            Server.ws.OnMessage += ProcessMessage;
         }
 
         protected override void OnOpen()
         {
             Send("You are connected");
         }
+
         protected override void OnMessage(MessageEventArgs e)
         {
-            WebSocketContext thiSocketContext = Context;
+            WebSocketSharp.Net.WebSockets.WebSocketContext thiSocketContext = Context;
             string ipAddress = "";
             ipAddress += thiSocketContext.UserEndPoint.Address.ToString();
             Console.WriteLine($"IPADDRESS = {ipAddress}");
@@ -91,13 +61,13 @@ namespace ServerConsoleApp
                 string thisChampId = SqlQuerries.GetChampIdFromDb(e.Data);
                 string sendAlive =
             "{\r\n\t\"service\":\"event\",\r\n\t\"action\":\"subscribe\",\r\n\t\"characters\":[" + thisChampId + "],\r\n\t\"eventNames\":[\"PlayerLogin\", \"PlayerLogout\"]\r\n}";
-                ws.Send(sendAlive);
+                Server.ws.Send(sendAlive);
             }
             string id = SqlQuerries.GetChampIdFromDb(e.Data);
             string sendString = "{\r\n\t\"service\":\"event\",\r\n\t\"action\":\"subscribe\",\r\n\t\"characters\":[\"" +
                         id + "\"],\r\n\t\"eventNames\":[\"Death\"]\r\n}";
             Console.WriteLine($"sendString = {sendString}");
-            ws.Send(sendString);
+            Server.ws.Send(sendString);
             _client = new WssvClient(ipAddress, e.Data, id);
             Console.WriteLine($"Client IP:{_client.IpAddress}");
             Console.WriteLine($"Client Querry:{_client.Querry}");
@@ -112,14 +82,27 @@ namespace ServerConsoleApp
         }
         protected override void OnClose(CloseEventArgs e)
         {
-            Console.WriteLine($"{DateTime.Now}:{_client.IpAddress} Closed the connection");
-            
+            if (null != _client)
+            {
+                Console.WriteLine($"{DateTime.Now}:{_client.IpAddress} Closed the connection");
+            }
+            UnsubscribeFromWs();
         }
-        protected override void OnError(ErrorEventArgs e)
+        protected override void OnError(WebSocketSharp.ErrorEventArgs e)
         {
             Console.WriteLine($"{DateTime.Now}: Error!!!");
             Console.WriteLine($"{DateTime.Now}: {e.Exception}");
             Console.WriteLine($"{DateTime.Now}: {e.Message}");
+            UnsubscribeFromWs();
+            if (Context.WebSocket.IsAlive)
+            {
+                this.Context.WebSocket.Close();
+            }
+        }
+
+        protected void UnsubscribeFromWs()
+        {
+            Server.ws.OnMessage -= ProcessMessage;
         }
         private void LoginLogoutNotifier(MessageEventArgs e)
         {
@@ -130,7 +113,8 @@ namespace ServerConsoleApp
                 if (!thisMsg.payload.character_id.IsNullOrEmpty())
                 {
                     SqlQuerries.ReplaceAlive(true, thisMsg.payload.character_id.ToString());
-                    if (thisMsg.payload.character_id == _client.QuerryId)
+                    if (null != _client.QuerryId)
+                        if (thisMsg.payload.character_id == _client.QuerryId)
                     {
                         Console.WriteLine("/////");
                         Console.WriteLine($"Sending PlayerLogin To Client {_client.IpAddress}");
@@ -143,7 +127,8 @@ namespace ServerConsoleApp
             {
                 LogoutMsg thisMsg = JsonConvert.DeserializeObject<LogoutMsg>(e.Data);
                 SqlQuerries.ReplaceAlive(false, thisMsg.payload.character_id.ToString());
-                if (thisMsg.payload.character_id == _client.QuerryId)
+                if (null != _client.QuerryId)
+                    if (thisMsg.payload.character_id == _client.QuerryId)
                 {
                     Console.WriteLine("/////");
                     Console.WriteLine($"Sending PlayerLogout To Client {_client.IpAddress}");
@@ -179,10 +164,17 @@ namespace ServerConsoleApp
         }
         private void Notify(MessageEventArgs e)
         {
+            String msg = !e.IsPing ? e.Data : "Received a ping.";
+            msg += "User context for notify: ";
+            if (_client == null)
+                msg += "NULL";
+            else
+                msg += _client.ToString();
             nf.Notify(new NotificationMessage
             {
+
                 Summary = "Planetside2 Api MSG",
-                Body = !e.IsPing ? e.Data : "Received a ping.",
+                Body = msg,
                 Icon = "notification-message-im"
             });
         }

@@ -421,7 +421,7 @@ namespace ServerConsoleApp
                         }
                         MySqlCommand addCommand =
                             new MySqlCommand(
-                                $"INSERT INTO PS2LS.Champions(ChampName, ChampNameLower, ChampId, IsOnline) VALUES (\'{champ.name.first}\', \'{champ.name.first_lower}\', \'{champ.character_id}\', \'1\')",
+                                $"INSERT INTO PS2LS.Champions(ChampName, ChampNameLower, ChampId) VALUES (\'{champ.name.first}\', \'{champ.name.first_lower}\', \'{champ.character_id}\')",
                                 db);
                         int rowsAffected = addCommand.ExecuteNonQuery();
                         Console.WriteLine(rowsAffected);
@@ -430,5 +430,6 @@ namespace ServerConsoleApp
                 }
             }
         }
+
     }
 }
