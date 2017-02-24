@@ -36,7 +36,7 @@ namespace ServerConsoleApp
                 DeathNotifier(e);
                 LoginLogoutNotifier(e);
             };
-
+            Console.WriteLine("");
             if (!ws.IsAlive)
             {
                 ws.Connect();
