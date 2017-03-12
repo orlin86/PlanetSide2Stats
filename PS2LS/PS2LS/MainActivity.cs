@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading;
@@ -10,6 +11,7 @@ using Android.Views;
 using Newtonsoft.Json;
 using WebSocketSharp;
 using System.Timers;
+using Android.Content.Res;
 
 
 namespace PS2LS
@@ -37,13 +39,21 @@ namespace PS2LS
             TextView timePlayed = FindViewById<TextView>(Resource.Id.TimePlayed);
             TextView smallText = FindViewById<TextView>(Resource.Id.SmallText);
 
-            WebSocket ws = new WebSocket("ws://92.247.240.220:4649/SendKills");
+            //WebSocket ws = new WebSocket("ws://92.247.240.220:4649/SendKills");
+            string wsAddress;
+            AssetManager assets = this.Assets;
+            using (StreamReader sr = new StreamReader(assets.Open("Server.txt")))
+            {
+                wsAddress = sr.ReadToEnd();
+            }
+            WebSocket ws = new WebSocket(wsAddress);
             ws.EmitOnPing = true;
             ws.WaitTime = TimeSpan.FromSeconds(10);
-
+            ////
             int Kills = 0;
             int Deaths = 0;
             string ChampId = "";
+            string ChampName = "";
             List<string> text = new List<string>();
             timer = new System.Timers.Timer(1000);
             timer.Elapsed += (senderer, er) =>
@@ -56,24 +66,25 @@ namespace PS2LS
             ThreadPool.QueueUserWorkItem(o => ws.OnOpen += (sender, e) =>
             {
                 text.Insert(0, "Connected");
-                if (text.Count >= 5)
+                if (text.Count >= 10)
                 {
                     text.Remove(text.Last());
                 }
                 RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
+                ChampName = inputName.Text;
                 ws.Send(inputName.Text);
             });
             RunOnUiThread(() => ws.OnMessage += (sender, e) =>
             {
-                if (e.IsPing)
+                /*if (e.IsPing)
                 {
                     text.Insert(0, "Ping");
-                    if (text.Count >= 5)
+                    if (text.Count >= 10)
                     {
                         text.Remove(text.Last());
                     }
                     RunOnUiThread(() => smallText.Text = $"{DateTime.Now}: {string.Join("\r\n", text)}");
-                }
+                }*/
                 if (e.IsText)
                 {
                     ws.Ping();
@@ -81,58 +92,53 @@ namespace PS2LS
                     {
                         ChampId = e.Data.Remove(0, 11);
                         text.Insert(0, $"{DateTime.Now:HH:mm:ss}: ChampId is {ChampId}");
-                        if (text.Count >= 5)
+                        if (text.Count >= 10)
                         {
                             text.Remove(text.Last());
                         }
                         RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
                     }
-                    if (e.Data.Contains("Death") && e.Data.Contains("payload"))
-                    {
-                        DeathMsg thisMsg = new DeathMsg();
-                        thisMsg = JsonConvert.DeserializeObject<DeathMsg>(e.Data);
-                        if (!thisMsg.payload.attacker_character_id.IsNullOrEmpty())
-                        {
-                            if (thisMsg.payload.attacker_character_id == ChampId)
-                            {
-                                Kills++;
-                                RunOnUiThread(() => kills.Text = Kills.ToString());
-                            }
-                            else if (thisMsg.payload.character_id == ChampId)
-                            {
-                                if (thisMsg.payload.attacker_weapon_id == "93" ||
-                                thisMsg.payload.attacker_weapon_id == "1626" ||
-                                thisMsg.payload.attacker_weapon_id == "1627" ||
-                                thisMsg.payload.attacker_weapon_id == "1628" ||
-                                thisMsg.payload.attacker_weapon_id == "1629" ||
-                                thisMsg.payload.attacker_weapon_id == "1690")
-                                {
-                                    Deaths--;
-                                    RunOnUiThread(() => deaths.Text = Deaths.ToString());
-                                }
-                                else
-                                {
-                                    Deaths++;
-                                    RunOnUiThread(() => deaths.Text = Deaths.ToString());
-                                }
-                            }
-                        }
-                    }
-                    if (e.Data.Contains("Online"))
+                    else if (e.Data.Length > 2 && e.Data.Substring(0, 2).ToString() == "01")
                     {
                         RunOnUiThread(() => isOnline.SetBackgroundColor(Android.Graphics.Color.Green));
-                        RunOnUiThread(() => isOnline.Text = "Character is ONLINE");
+                        RunOnUiThread(() => isOnline.Text = $"{ChampName} is ONLINE");
                         timer.Enabled = true;
                     }
-                    if (e.Data.Contains("Offline"))
+                    else if (e.Data.Length > 2 && e.Data.Substring(0, 2).ToString() == "02")
                     {
                         RunOnUiThread(() => isOnline.SetBackgroundColor(Android.Graphics.Color.Red));
-                        RunOnUiThread(() => isOnline.Text = "Character is OFFLINE");
+                        RunOnUiThread(() => isOnline.Text = $"{ChampName} is OFFLINE");
                         timer.Enabled = false;
                     }
 
-                    text.Insert(0, $"{DateTime.Now:HH:mm:ss}: {e.Data}");
-                    if (text.Count >= 5)
+                    else if (e.Data.Length > 2 && e.Data.Substring(0, 2).ToString() == "03")
+                    {
+                        Kills++;
+                        RunOnUiThread(() => kills.Text = Kills.ToString());
+                        text.Insert(0, $"{DateTime.Now:HH:mm:ss}: {e.Data.Substring(2).ToString()}");
+
+                    }
+                    else if (e.Data.Length > 2 && e.Data.Substring(0, 2).ToString() == "06")
+                    {
+                        RunOnUiThread(() => kills.Text = Kills.ToString());
+                        text.Insert(0, $"{DateTime.Now:HH:mm:ss}: {e.Data.Substring(2).ToString()}");
+
+                    }
+                    else if (e.Data.Length > 2 && e.Data.Substring(0, 2).ToString() == "04")
+                    {
+                        Deaths++;
+                        RunOnUiThread(() => deaths.Text = Deaths.ToString());
+                        text.Insert(0, $"{DateTime.Now:HH:mm:ss}: {e.Data.Substring(2).ToString()}");
+                    }
+                    else if (e.Data.Length > 2 && e.Data.Substring(0, 2).ToString() == "05")
+                    {
+                        ws.Close();
+                        text.Insert(0, $"{DateTime.Now:HH:mm:ss}: {e.Data.Substring(2).ToString()}");
+                    }
+
+
+                    //text.Insert(0, $"{DateTime.Now:HH:mm:ss}: {e.Data}");
+                    if (text.Count >= 10)
                     {
                         text.Remove(text.Last());
                     }
@@ -143,7 +149,7 @@ namespace PS2LS
             ThreadPool.QueueUserWorkItem(o => ws.OnError += (sender, e) =>
             {
                 text.Insert(0, e.Message.ToString());
-                if (text.Count >= 5)
+                if (text.Count >= 10)
                 {
                     text.Remove(text.Last());
                 }
@@ -153,7 +159,7 @@ namespace PS2LS
             {
                 timer.Enabled = false;
                 text.Insert(0, "Disconnected");
-                if (text.Count >= 5)
+                if (text.Count >= 10)
                 {
                     text.Remove(text.Last());
                 }

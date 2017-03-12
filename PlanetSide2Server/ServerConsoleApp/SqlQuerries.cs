@@ -12,14 +12,20 @@ namespace ServerConsoleApp
 {
     public class SqlQuerries
     {
+        private static string connectionString;
+
+        static SqlQuerries()
+        {
+            //connectionString ="Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
+            connectionString = "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+        }
+
         public static bool SearchChampion(string name)
         {
             using (MySqlConnection db = new MySqlConnection())
             {
                 string result = "";
-                db.ConnectionString =
-                    //"Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                db.ConnectionString = connectionString;
                 try
                 {
                     db.Open();
@@ -32,11 +38,12 @@ namespace ServerConsoleApp
                 {
                     MySqlCommand searchCommand =
                         new MySqlCommand(
-                            $"SELECT DISTINCT * FROM PS2LS.Champions WHERE ChampNameLower=\'{name.ToLower()}\';", db);
+                            $"SELECT DISTINCT ChampId FROM PS2LS.Champions WHERE ChampNameLower=@name;", db);
+                    searchCommand.Parameters.AddWithValue("@name", name.ToLower());
                     var reader = searchCommand.ExecuteReader();
                     while (reader.Read())
                     {
-                        result += reader["ChampId"].ToString();
+                        result = reader["ChampId"].ToString();
                     }
                 }
                 catch (Exception e)
@@ -44,7 +51,7 @@ namespace ServerConsoleApp
                     Console.WriteLine(e.ToString());
                 }
                 db.Close();
-                if (result != "")
+                if (result!="")
                 {
                     return true;
                 }
@@ -59,9 +66,7 @@ namespace ServerConsoleApp
             string result = "";
             using (MySqlConnection db = new MySqlConnection())
             {
-                db.ConnectionString =
-                //"Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                db.ConnectionString = connectionString;
                 try
                 {
                     db.Open();
@@ -91,7 +96,7 @@ namespace ServerConsoleApp
                 return result;
             }
         }
-        public static void AddChampByName(string name)
+        public static bool AddChampByName(string name)
         {
             var input = name.ToLower();
             string url = @"http://census.daybreakgames.com/s:3216732167/get/ps2:v2/character/?name.first_lower=" + input;
@@ -113,9 +118,7 @@ namespace ServerConsoleApp
                 {
                     using (MySqlConnection db = new MySqlConnection())
                     {
-                        db.ConnectionString =
-                        //"Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                        "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                        db.ConnectionString = connectionString;
                         try
                         {
                             db.Open();
@@ -126,22 +129,22 @@ namespace ServerConsoleApp
                         }
                         MySqlCommand addCommand =
                             new MySqlCommand(
-                                $"INSERT INTO PS2LS.Champions(ChampName, ChampNameLower, ChampId) VALUES (\'{champ.name.first}\', \'{champ.name.first_lower}\', \'{champ.character_id}\')",
+                                $"INSERT INTO PS2LS.Champions(ChampName, ChampNameLower, ChampId, FactionId, DateAdded) VALUES (\'{champ.name.first}\', \'{champ.name.first_lower}\',{champ.character_id}, \'{champ.faction_id}\', \'{DateTime.Now:yyyy-MM-dd HH:MM:ss}\' )",
                                 db);
                         int rowsAffected = addCommand.ExecuteNonQuery();
-                        Console.WriteLine(rowsAffected);
+                        Console.WriteLine($"Champ {name} Added to dB! Code: {rowsAffected}");
                         db.Close();
                     }
                 }
+                return true;
             }
+            return false;
         }
-        public static void AddQuerry(WssvClient client)
+        public static void AddQuerry(WssvClient client, bool disconnConn)
         {
             using (MySqlConnection db = new MySqlConnection())
             {
-                db.ConnectionString =
-                // "Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                db.ConnectionString = connectionString;
                 try
                 {
                     db.Open();
@@ -150,14 +153,26 @@ namespace ServerConsoleApp
                 {
                     Console.WriteLine(e.ToString());
                 }
-                DateTime now = DateTime.Now;
-                MySqlCommand addCommand =
+                if (disconnConn)
+                {
+                    MySqlCommand addCommand =
                     new MySqlCommand(
-                        $"INSERT INTO PS2LS.Querries(`ClientIpAddress`, `ChampName`, `Time`) VALUES (\'{client.IpAddress}\', \'{client.Querry}\', \'{now:G}\')",
+                        $"INSERT INTO PS2LS.Querries(`ClientIpAddress`, `ChampName`, `Time`, `DisconnConn`) VALUES (\'{client.IpAddress}\', \'{client.Querry}\', \'{DateTime.Now:yyyy-MM-dd HH:MM:ss}\', 1)",
                         db);
-                int rowsAffected = addCommand.ExecuteNonQuery();
-                Console.WriteLine(rowsAffected);
-                db.Close();
+                    int rowsAffected = addCommand.ExecuteNonQuery();
+                    Console.WriteLine($"Added Connected, Code {rowsAffected}");
+                    db.Close();
+                }
+                else
+                {
+                    MySqlCommand addCommand =
+                    new MySqlCommand(
+                        $"INSERT INTO PS2LS.Querries(`ClientIpAddress`, `ChampName`, `Time`,`DisconnConn`) VALUES (\'{client.IpAddress}\', \'{client.Querry}\', \'{DateTime.Now:yyyy-MM-dd HH:MM:ss}\', 0)",
+                        db);
+                    int rowsAffected = addCommand.ExecuteNonQuery();
+                    Console.WriteLine($"Added Disconnected, Code {rowsAffected}");
+                    db.Close();
+                }
             }
         }
         public static string[] GetAllIds()
@@ -165,9 +180,7 @@ namespace ServerConsoleApp
             using (MySqlConnection db = new MySqlConnection())
             {
                 List<string> result = new List<string>();
-                db.ConnectionString =
-                //"Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                db.ConnectionString = connectionString;
                 try
                 {
                     db.Open();
@@ -206,9 +219,7 @@ namespace ServerConsoleApp
                 using (MySqlConnection db = new MySqlConnection())
                 {
                     int rowsAffected = 0;
-                    db.ConnectionString =
-                    //"Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                    "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                    db.ConnectionString = connectionString;
                     try
                     {
                         db.Open();
@@ -220,7 +231,7 @@ namespace ServerConsoleApp
                     try
                     {
                         MySqlCommand addCommand =
-                            new MySqlCommand($"UPDATE PS2LS.Champions SET IsOnline=1 WHERE ChampId=\'" + id + "\'", db);
+                            new MySqlCommand($"UPDATE PS2LS.Champions SET IsOnline=1 WHERE ChampId=" + id, db);
                         rowsAffected = addCommand.ExecuteNonQuery();
 
                     }
@@ -228,7 +239,7 @@ namespace ServerConsoleApp
                     {
                         Console.WriteLine(e);
                     }
-                    Console.WriteLine(rowsAffected);
+                    Console.WriteLine($"Set IsOnline=1! Code: {rowsAffected}");
                     db.Close();
                 }
             }
@@ -238,9 +249,7 @@ namespace ServerConsoleApp
                 {
                     int rowsAffected = 0;
 
-                    db.ConnectionString =
-                    //"Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                    "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                    db.ConnectionString = connectionString;
                     try
                     {
                         db.Open();
@@ -252,26 +261,25 @@ namespace ServerConsoleApp
                     try
                     {
                         MySqlCommand addCommand =
-                            new MySqlCommand($"UPDATE PS2LS.Champions SET IsOnline=0 WHERE ChampId=\'" + id + "\'", db);
+                            new MySqlCommand($"UPDATE PS2LS.Champions SET IsOnline=0 WHERE ChampId=" + id, db);
                         rowsAffected = addCommand.ExecuteNonQuery();
                     }
                     catch (Exception e)
                     {
                         Console.WriteLine(e);
                     }
-                    Console.WriteLine(rowsAffected);
+                    Console.WriteLine($"Set IsOnline=0! Code: {rowsAffected}");
                     db.Close();
                 }
             }
         }
-        public static string GetNameById(string id)
+        public static KeyValuePair<string,string> GetNameById(string id)
         {
-            string result = "";
+            string resName = "";
+            string resFiD = "";
             using (MySqlConnection db = new MySqlConnection())
             {
-                db.ConnectionString =
-                //"Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                db.ConnectionString = connectionString;
                 try
                 {
                     db.Open();
@@ -285,17 +293,19 @@ namespace ServerConsoleApp
                 {
                     MySqlCommand searchCommand =
                         new MySqlCommand(
-                            $"SELECT DISTINCT ChampName FROM PS2LS.Champions WHERE ChampId=\'{id}\'\r\n; ", db);
+                            $"SELECT DISTINCT ChampName, FactionId FROM PS2LS.Champions WHERE ChampId=\'{id}\'\r\n; ", db);
                     var reader = searchCommand.ExecuteReader();
                     while (reader.Read())
                     {
-                        result = reader["ChampName"].ToString();
+                        resName = reader["ChampName"].ToString();
+                        resFiD = reader["FactionId"].ToString();
                     }
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e.ToString());
                 }
+                KeyValuePair<string, string> result = new KeyValuePair<string, string>(resName, resFiD);
                 db.Close();
                 return result;
             }
@@ -305,9 +315,7 @@ namespace ServerConsoleApp
             using (MySqlConnection db = new MySqlConnection())
             {
                 string result = "";
-                db.ConnectionString =
-                //"Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                db.ConnectionString = connectionString;
                 try
                 {
                     db.Open();
@@ -348,9 +356,7 @@ namespace ServerConsoleApp
             string result = "";
             using (MySqlConnection db = new MySqlConnection())
             {
-                db.ConnectionString =
-                //"Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                db.ConnectionString = connectionString;
                 try
                 {
                     db.Open();
@@ -408,9 +414,7 @@ namespace ServerConsoleApp
                 {
                     using (MySqlConnection db = new MySqlConnection())
                     {
-                        db.ConnectionString =
-                        // "Server=192.168.0.105;Database=PS2LS;Uid=orlin;Pwd=razor;connection timeout=30";
-                        "Server=127.0.0.1;Database=PS2LS;Uid=root;Pwd=razor;Pooling=false";
+                        db.ConnectionString = connectionString;
                         try
                         {
                             db.Open();
@@ -421,15 +425,14 @@ namespace ServerConsoleApp
                         }
                         MySqlCommand addCommand =
                             new MySqlCommand(
-                                $"INSERT INTO PS2LS.Champions(ChampName, ChampNameLower, ChampId) VALUES (\'{champ.name.first}\', \'{champ.name.first_lower}\', \'{champ.character_id}\')",
+                                 $"INSERT INTO PS2LS.Champions(ChampName, ChampNameLower, ChampId, FactionId, DateAdded) VALUES (\'{champ.name.first}\', \'{champ.name.first_lower}\',{champ.character_id}, \'{champ.faction_id}\', \'{DateTime.Now:yyyy-MM-dd HH:MM:ss}\' )",
                                 db);
                         int rowsAffected = addCommand.ExecuteNonQuery();
-                        Console.WriteLine(rowsAffected);
+                        Console.WriteLine($"Champ {champ.name.first} added, Code: {rowsAffected}");
                         db.Close();
                     }
                 }
             }
         }
-
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
@@ -18,26 +19,15 @@ namespace ServerConsoleApp
 {
     public class SendKills : WebSocketBehavior
     {
-        
         private WssvClient _client;
-        private Notifier nf = new Notifier();
 
         public void ProcessMessage(Object sender, MessageEventArgs e)
         {
-            if (e.Data.Contains("heartbeat"))
-            {
-                Send($"{e.Data}");
-            }
             DeathNotifier(e);
             LoginLogoutNotifier(e);
         }
         public SendKills()
         {
-            //IgnoreExtensions = true;
-            //Server.ws.EmitOnPing = true;
-            //Server.ws.OnOpen += (sender, e) =>
-            //    {
-            //    };
             Server.ws.OnMessage += ProcessMessage;
         }
 
@@ -45,7 +35,6 @@ namespace ServerConsoleApp
         {
             Send("You are connected");
         }
-
         protected override void OnMessage(MessageEventArgs e)
         {
             WebSocketSharp.Net.WebSockets.WebSocketContext thiSocketContext = Context;
@@ -57,33 +46,48 @@ namespace ServerConsoleApp
             Console.WriteLine($"champExists = {champExists}");
             if (!champExists)
             {
-                SqlQuerries.AddChampByName(e.Data);
-                string thisChampId = SqlQuerries.GetChampIdFromDb(e.Data);
-                string sendAlive =
-            "{\r\n\t\"service\":\"event\",\r\n\t\"action\":\"subscribe\",\r\n\t\"characters\":[" + thisChampId + "],\r\n\t\"eventNames\":[\"PlayerLogin\", \"PlayerLogout\"]\r\n}";
-                Server.ws.Send(sendAlive);
+                if (SqlQuerries.AddChampByName(e.Data))
+                {
+                    SendAliveQuerryToApi(e);
+                }
+                else if (!SqlQuerries.AddChampByName(e.Data))
+                {
+                    //↓ Code 05 - Character with such name does not exist! Disconnecting client!
+                    Send($"05Champion, named: {e.Data} does not exist!");
+                }
             }
             string id = SqlQuerries.GetChampIdFromDb(e.Data);
             string sendString = "{\r\n\t\"service\":\"event\",\r\n\t\"action\":\"subscribe\",\r\n\t\"characters\":[\"" +
-                        id + "\"],\r\n\t\"eventNames\":[\"Death\"]\r\n}";
+                        id + "\"],\r\n\t\"eventNames\":[\"Death\", \"PlayerLogin\", \"PlayerLogout\"]\r\n}";
             Console.WriteLine($"sendString = {sendString}");
             Server.ws.Send(sendString);
+            Server.ClientsSendstrings.Add(sendString);
             _client = new WssvClient(ipAddress, e.Data, id);
             Console.WriteLine($"Client IP:{_client.IpAddress}");
             Console.WriteLine($"Client Querry:{_client.Querry}");
             Console.WriteLine($"Client QuerryID:{_client.QuerryId}");
             Send($"ClientIdIs:{_client.QuerryId}");
-            if (SqlQuerries.GetOnlineStatus(_client.Querry.ToLower()))
+
+            bool isOnline = SqlQuerries.GetOnlineStatus(_client.Querry.ToLower());
+            if (isOnline)
             {
-                Send($"{_client.Querry} Online");
+                Send($"01{_client.Querry} Online");
+                SqlQuerries.ReplaceAlive(true, _client.QuerryId);
             }
+            else if (!isOnline)
+            {
+                Send($"02{_client.Querry} Offline");
+                SqlQuerries.ReplaceAlive(false, _client.QuerryId);
+            }
+
             // ↓ sets name to client to match his querry
-            SqlQuerries.AddQuerry(_client);
+            SqlQuerries.AddQuerry(_client,true);
         }
         protected override void OnClose(CloseEventArgs e)
         {
             if (null != _client)
             {
+                SqlQuerries.AddQuerry(_client, false);
                 Console.WriteLine($"{DateTime.Now}:{_client.IpAddress} Closed the connection");
             }
             UnsubscribeFromWs();
@@ -99,7 +103,13 @@ namespace ServerConsoleApp
                 this.Context.WebSocket.Close();
             }
         }
-
+        private static void SendAliveQuerryToApi(MessageEventArgs e)
+        {
+            string thisChampId = SqlQuerries.GetChampIdFromDb(e.Data);
+            string sendAlive =
+        "{\r\n\t\"service\":\"event\",\r\n\t\"action\":\"subscribe\",\r\n\t\"characters\":[" + thisChampId + "],\r\n\t\"eventNames\":[\"PlayerLogin\", \"PlayerLogout\"]\r\n}";
+            Server.ws.Send(sendAlive);
+        }
         protected void UnsubscribeFromWs()
         {
             Server.ws.OnMessage -= ProcessMessage;
@@ -112,28 +122,28 @@ namespace ServerConsoleApp
                 thisMsg = JsonConvert.DeserializeObject<LoginMsg>(e.Data);
                 if (!thisMsg.payload.character_id.IsNullOrEmpty())
                 {
-                    SqlQuerries.ReplaceAlive(true, thisMsg.payload.character_id.ToString());
-                    if (null != _client.QuerryId)
-                        if (thisMsg.payload.character_id == _client.QuerryId)
+                    if (_client.QuerryId!=null)
                     {
-                        Console.WriteLine("/////");
-                        Console.WriteLine($"Sending PlayerLogin To Client {_client.IpAddress}");
-                        Console.WriteLine("/////");
-                        Send($"{_client.Querry} Online");
+                        if (thisMsg.payload.character_id == _client.QuerryId)
+                        {
+                            //↓ Code 01 - Client Logged ON
+                            Console.WriteLine($"{DateTime.Now}: Sending PlayerLogin To Client {_client.IpAddress}");
+                            Send($"01{_client.Querry} Online");
+                        }
                     }
                 }
             }
             else if (e.Data.Contains("PlayerLogout") && e.Data.Contains("payload"))
             {
                 LogoutMsg thisMsg = JsonConvert.DeserializeObject<LogoutMsg>(e.Data);
-                SqlQuerries.ReplaceAlive(false, thisMsg.payload.character_id.ToString());
                 if (null != _client.QuerryId)
-                    if (thisMsg.payload.character_id == _client.QuerryId)
                 {
-                    Console.WriteLine("/////");
-                    Console.WriteLine($"Sending PlayerLogout To Client {_client.IpAddress}");
-                    Console.WriteLine("/////");
-                    Send($"{_client.Querry} Offline");
+                    if (thisMsg.payload.character_id == _client.QuerryId)
+                    {
+                        //↓ Code 02 - Client Logged OFF
+                        Console.WriteLine($"{DateTime.Now}: Sending PlayerLogout To Client {_client.IpAddress}");
+                        Send($"02{_client.Querry} Offline");
+                    }
                 }
             }
         }
@@ -141,42 +151,51 @@ namespace ServerConsoleApp
         {
             if (e.Data.Contains("Death") && e.Data.Contains("payload"))
             {
-                DeathMsg thisMsg = new DeathMsg();
-                thisMsg = JsonConvert.DeserializeObject<DeathMsg>(e.Data);
+                DeathMsg thisMsg = JsonConvert.DeserializeObject<DeathMsg>(e.Data);
                 if (!thisMsg.payload.attacker_character_id.IsNullOrEmpty())
                 {
-                    if (thisMsg.payload.attacker_character_id == _client.QuerryId || thisMsg.payload.character_id == _client.QuerryId)
+                    if (thisMsg.payload.attacker_character_id == _client.QuerryId)
                     {
-                        if (!SqlQuerries.SearchById(thisMsg.payload.character_id))
+                        // ↓ SqlQuerry returns KVP - Key: Name Value: FactionId
+                        var victim = SqlQuerries.GetNameById(thisMsg.payload.character_id);
+                        var attacker = SqlQuerries.GetNameById(_client.QuerryId);
+                        if (attacker.Value != victim.Value && attacker.Key != victim.Key)
                         {
-                            SqlQuerries.AddChampById(thisMsg.payload.character_id);
-                            Console.WriteLine($"Added Champ to dB: {SqlQuerries.GetNameById(thisMsg.payload.character_id)}");
+
+                            //↓ Code 03 - Client KILLED enemy
+                            Send($"03{_client.Querry} killed {victim.Key} ( {Server.Factions[victim.Value]} )");
+                            Console.WriteLine($"Sending kill (#03): {_client.Querry} killed {victim.Key} ( {Server.Factions[victim.Value]} )");
                         }
-                        else if (!SqlQuerries.SearchById(thisMsg.payload.attacker_character_id))
+                        else if (attacker.Value == victim.Value&&attacker.Key!=victim.Key)
                         {
-                            SqlQuerries.AddChampById(thisMsg.payload.attacker_character_id);
-                            Console.WriteLine($"Added Champ to dB: {SqlQuerries.GetNameById(thisMsg.payload.attacker_character_id)}");
+                            //↓ Code 06 - Client KILLED Ally!
+                            Send($"06{_client.Querry} killed ALLY {victim.Key}");
+                            Console.WriteLine($"Sending ally kill (#06): {_client.Querry} killed {victim.Key}");
                         }
-                        Send($"{e.Data}");
+
+
+                    }
+                    else if (thisMsg.payload.character_id == _client.QuerryId)
+                    {
+                        var victim = SqlQuerries.GetNameById(thisMsg.payload.character_id);
+                        var attacker = SqlQuerries.GetNameById(thisMsg.payload.attacker_character_id);
+                        if (victim.Key!= attacker.Key)
+                        {
+                            //↓ Code 04 - Client Died by someone
+                            var killer = SqlQuerries.GetNameById(thisMsg.payload.attacker_character_id);
+                            Send($"04{_client.Querry} died by {killer.Key} ( {Server.Factions[killer.Value]} )");
+                            Console.WriteLine($"Sending kill (#03): {_client.Querry} killed {killer.Key}");
+                        }
+                        else if (victim.Key==attacker.Key)
+                        {
+                            //↓ Code 04 - Client killed himself
+                            Send($"04{_client.Querry} killed himself");
+                            Console.WriteLine($"Sending kill (#03): {_client.Querry} killed himself");
+                        }
+                        
                     }
                 }
             }
-        }
-        private void Notify(MessageEventArgs e)
-        {
-            String msg = !e.IsPing ? e.Data : "Received a ping.";
-            msg += "User context for notify: ";
-            if (_client == null)
-                msg += "NULL";
-            else
-                msg += _client.ToString();
-            nf.Notify(new NotificationMessage
-            {
-
-                Summary = "Planetside2 Api MSG",
-                Body = msg,
-                Icon = "notification-message-im"
-            });
         }
     }
 

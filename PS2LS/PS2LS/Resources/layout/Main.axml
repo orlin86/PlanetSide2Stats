@@ -130,6 +130,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/SmallText"
-        android:background="#80FFFFFF"
-        android:textColor="#222222" />
+        android:textColor="@android:color/background_light"
+        android:textSize="25dp"
+        android:layout_margin="5dp"
+        android:background="#AA4682B4" />
 </LinearLayout>
