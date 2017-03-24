@@ -12,11 +12,15 @@ using Newtonsoft.Json;
 using WebSocketSharp;
 using System.Timers;
 using Android.Content.Res;
+using Android.Graphics;
+using Android.Text;
+using Android.Text.Style;
+using Android.Views.InputMethods;
 
 
-namespace PS2LS
+namespace PS2GT
 {
-    [Activity(Label = "PS2LS", MainLauncher = true, Icon = "@drawable/icon", ScreenOrientation = Android.Content.PM.ScreenOrientation.Portrait)]
+    [Activity(Label = "PS2GT", MainLauncher = true, Icon = "@drawable/icon", ScreenOrientation = Android.Content.PM.ScreenOrientation.Portrait)]
 
     public class MainActivity : Activity
     {
@@ -71,8 +75,8 @@ namespace PS2LS
                     text.Remove(text.Last());
                 }
                 RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
-                ChampName = inputName.Text;
-                ws.Send(inputName.Text);
+                ChampName = inputName.Text.Trim();
+                ws.Send(inputName.Text.Trim());
             });
             RunOnUiThread(() => ws.OnMessage += (sender, e) =>
             {
@@ -136,7 +140,6 @@ namespace PS2LS
                         text.Insert(0, $"{DateTime.Now:HH:mm:ss}: {e.Data.Substring(2).ToString()}");
                     }
 
-
                     //text.Insert(0, $"{DateTime.Now:HH:mm:ss}: {e.Data}");
                     if (text.Count >= 10)
                     {
@@ -164,7 +167,6 @@ namespace PS2LS
                     text.Remove(text.Last());
                 }
                 RunOnUiThread(() => smallText.Text = string.Join("\r\n", text));
-                //ws.Send(inputName.Text);
             });
 
             //// Enter rest querry to PS2 API
@@ -193,7 +195,25 @@ namespace PS2LS
                     inputName.Text = "";
                 }
             };
+            inputName.TextChanged += (object sender, TextChangedEventArgs e) =>
+            {
+                if (inputName.Text.Contains("Enter character name:"))
+                {
+                    inputName.Text = e.Text.FirstOrDefault().ToString();
+                    inputName.SetSelection(1);
+                }
+            };
 
+            //inputName.KeyPress += (object sender, View.KeyEventArgs e) => {
+            //    e.Handled = false;
+            //    if (e.Event.Action == KeyEventActions.Down )
+            //    {
+            //        smallText.Text+="asd";
+            //        e.Handled = true;
+            //        inputName.Text += "za";
+            //        //ws.Connect();
+            //    }
+            //};
         }
 
         private static void WSConnect(WebSocket ws)

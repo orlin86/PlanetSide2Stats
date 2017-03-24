@@ -9,9 +9,9 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-[assembly: global::Android.Runtime.ResourceDesignerAttribute("PS2LS.Resource", IsApplication=true)]
+[assembly: global::Android.Runtime.ResourceDesignerAttribute("PS2GT.Resource", IsApplication=true)]
 
-namespace PS2LS
+namespace PS2GT
 {
 	
 	

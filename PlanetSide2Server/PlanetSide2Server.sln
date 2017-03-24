@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerConsoleApp", "ServerC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{3BA5FBE0-051A-4B6E-AFD3-3A613A44C6EB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PS2LS", "..\PS2LS\PS2LS\PS2LS.csproj", "{A0F8D397-DA02-4EB6-8031-2F51FC684B50}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PS2GT", "..\PS2LS\PS2LS\PS2GT.csproj", "{A0F8D397-DA02-4EB6-8031-2F51FC684B50}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
