@@ -69,15 +69,15 @@ namespace ServerConsoleApp
                 }
             }
         }
-        private static void SendAliveQuerry(object source, ElapsedEventArgs e)
+        private static void SendNonAllQuerry(object source, ElapsedEventArgs e)
         {
-            string[] allIds = SqlQuerries.GetAllIds();
+            string[] allIds = SqlQuerries.GetAllIdsQuerries();
             foreach (var item in allIds)
             {
                 if (ws.IsAlive)
                 {
                     string sendString =
-            "{\r\n\t\"service\":\"event\",\r\n\t\"action\":\"subscribe\",\r\n\t\"characters\":[" + item + "],\r\n\t\"eventNames\":[ \"PlayerLogin\", \"PlayerLogout\"]\r\n}";
+            "{\r\n\t\"service\":\"event\",\r\n\t\"action\":\"subscribe\",\r\n\t\"characters\":[" + item + "],\r\n\t\"eventNames\":[\"Deaths\", \"PlayerLogin\", \"PlayerLogout\"]\r\n}";
                     ws.Send(sendString);
                     //Thread.Sleep(300);
                 }
@@ -120,7 +120,7 @@ namespace ServerConsoleApp
                     // ↓ If args == showN => Shows API e.data msgs in terminal
                     if (arg == "showN")
                     {
-                        Console.WriteLine(e.Data);
+                        Console.WriteLine($"{DateTime.Now}: {e.Data}");
                     }
                 }
 
@@ -151,7 +151,7 @@ namespace ServerConsoleApp
                             if (!SqlQuerries.SearchById(thisMsg.payload.character_id))
                             {
                                 SqlQuerries.AddChampById(thisMsg.payload.character_id);
-                                Console.WriteLine($"Added Champ to dB: {SqlQuerries.GetNameById(thisMsg.payload.character_id)}");
+                                Console.WriteLine($"{DateTime.Now}: Added Champ to dB: {SqlQuerries.GetNameById(thisMsg.payload.character_id)}");
                                 foreach (var arg in args)
                                 {
                                     if (arg == "all")
@@ -163,7 +163,7 @@ namespace ServerConsoleApp
                             else if (!SqlQuerries.SearchById(thisMsg.payload.attacker_character_id))
                             {
                                 SqlQuerries.AddChampById(thisMsg.payload.attacker_character_id);
-                                Console.WriteLine($"Added Champ to dB: {SqlQuerries.GetNameById(thisMsg.payload.attacker_character_id)}");
+                                Console.WriteLine($"{DateTime.Now}: Added Champ to dB: {SqlQuerries.GetNameById(thisMsg.payload.attacker_character_id)}");
                                 foreach (var arg in args)
                                 {
                                     if (arg == "all")
@@ -228,7 +228,7 @@ namespace ServerConsoleApp
                             Interval = 1000,
                             AutoReset = false
                         };
-                        initTimer.Elapsed += SendAliveQuerry;
+                        initTimer.Elapsed += SendNonAllQuerry;
                         initTimer.Enabled = true;
                     }
                 }
@@ -289,7 +289,16 @@ namespace ServerConsoleApp
 
                 wsIsOnline = WsReconnect(args, wsIsOnline);
 
-                input = Console.ReadLine();
+                input = "";
+                try
+                {
+                    input = ReaderForLoops.ReadLine(150000);
+                }
+                catch (TimeoutException)
+                {
+                    //Console.WriteLine("Next loop init");
+                }
+
             }
             wssv.Stop();
         }

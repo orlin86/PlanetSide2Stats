@@ -71,6 +71,7 @@
     <Compile Include="Champion.cs" />
     <Compile Include="NotificationMessage.cs" />
     <Compile Include="Notifier.cs" />
+    <Compile Include="ReaderForLoops.cs" />
     <Compile Include="SendKills.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

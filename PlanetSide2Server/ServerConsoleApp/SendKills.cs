@@ -190,7 +190,7 @@ namespace ServerConsoleApp
                         {
                             //↓ Code 04 - Client killed himself
                             Send($"04{_client.Querry} killed himself");
-                            Console.WriteLine($"Sending kill (#03): {_client.Querry} killed himself");
+                            Console.WriteLine($"Sending kill (#04): {_client.Querry} killed himself");
                         }
                         
                     }

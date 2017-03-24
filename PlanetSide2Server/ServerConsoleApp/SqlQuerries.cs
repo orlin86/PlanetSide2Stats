@@ -434,5 +434,43 @@ namespace ServerConsoleApp
                 }
             }
         }
+        public static string[] GetAllIdsQuerries()
+        {
+            using (MySqlConnection db = new MySqlConnection())
+            {
+                List<string> result = new List<string>();
+                db.ConnectionString = connectionString;
+                try
+                {
+                    db.Open();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
+                try
+                {
+                    MySqlCommand searchCommand = new MySqlCommand($"select distinct q.ChampName, c.ChampId from Querries as q join Champions as c on q.ChampName = c.ChampName", db);
+                    var reader = searchCommand.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        result.Add(reader["ChampId"].ToString());
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
+                db.Close();
+                string[] res = result.ToArray();
+                for (int i = 0; i < res.Length; i++)
+                {
+                    res[i] = res[i].Insert(0, "\"");
+                    res[i] = res[i] + "\"";
+                }
+                return res;
+            }
+        }
+
     }
 }
